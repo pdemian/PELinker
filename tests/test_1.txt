@@ -1,0 +1,3 @@
+Purpose: More advanced test of functionality
+Inputs: none
+Outputs: a non-zero return value

@@ -1,0 +1,47 @@
+{
+  "Code": "agBoAAAAAGgAAAAAagD/FQAAAABqAP8VAAAAAA==",
+  "EntryPoint": 0,
+  "FileAlignment": 0,
+  "SectionAlignment": 0,
+  "Subsystem": 2,
+  "SymbolInfo": [
+    {
+      "LibraryName": "Kernel32.dll",
+      "Functions": [
+        {
+          "Ordinal": 0,
+          "FunctionName": "ExitProcess",
+          "Replacements": [
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "LibraryName": "User32.dll",
+      "Functions": [
+        {
+          "Ordinal": 0,
+          "FunctionName": "MessageBoxA",
+          "Replacements": [
+            16
+          ]
+        }
+      ]
+    }
+  ],
+  "StringTable": [
+    {
+      "Text": "Hello World",
+      "Replacements": [
+        3
+      ]
+    },
+    {
+      "Text": "A simple PE test",
+      "Replacements": [
+        8
+      ]
+    }
+  ]
+}

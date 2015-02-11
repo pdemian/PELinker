@@ -250,10 +250,10 @@ namespace Compiler
 
         }
 
-        public static void WriteEXE(FileStream fs, CodeInformation code_info)
+        public static void WriteEXE(FileStream fs, CodeInformation code_info, bool verbose)
         {
             WriteDOSHeader(fs);
-            WritePE(fs, code_info);
+            WritePE(fs, code_info, verbose);
         }
 
 
@@ -315,11 +315,18 @@ namespace Compiler
             fs.Write(DOS_Code, 0, DOS_Code.Length);
         }
 
-        private static void WritePE(FileStream fs, CodeInformation code_info)
+        private static void WritePE(FileStream fs, CodeInformation code_info, bool verbose)
         {
             //header information
             Image_Header header = new Image_Header();
             List<Image_IAT_Header> IAT_Headers = new List<Image_IAT_Header>();
+
+            //correct alignment if necessary
+            if (code_info.FileAlignment > 0)
+                header.OptionalHeader.FileAlignment = code_info.FileAlignment;
+            if (code_info.SectionAlignment > 0)
+                header.OptionalHeader.SectionAlignment = code_info.SectionAlignment;
+
 
             //temporary variables
             byte[] temp = null;
@@ -369,7 +376,7 @@ namespace Compiler
                 foreach (var function in DLL.Functions)
                 {
                     //2 byte ordinal + name + null
-                    DLL_offset += (uint)(2 + function.Item2.Length + 1);
+                    DLL_offset += (uint)(2 + function.FunctionName.Length + 1);
                 }
             }
 
@@ -394,7 +401,7 @@ namespace Compiler
                         Address = RData_RVA + IAT_offset + function_offset
                     });
                     //adjust code to work with new functions
-                    foreach (var replacement in function.Item3)
+                    foreach (var replacement in function.Replacements)
                     {
                         offset_calculation = header.OptionalHeader.ImageBase + RData_RVA + IAT_offset + function_offset;
 
@@ -403,7 +410,7 @@ namespace Compiler
                         code_info.Code[replacement + 2] = (byte)(offset_calculation >> 16);
                         code_info.Code[replacement + 3] = (byte)(offset_calculation >> 24);
                     }
-                    function_offset += (uint)(2 + function.Item2.Length + 1);
+                    function_offset += (uint)(2 + function.FunctionName.Length + 1);
                 }
                 DLL_offset += (uint)(DLL.LibraryName.Length + 1);
             }
@@ -426,10 +433,10 @@ namespace Compiler
             {
                 foreach (var functions in DLL.Functions)
                 {
-                    temp = BitConverter.GetBytes((short)functions.Item1);
+                    temp = BitConverter.GetBytes((short)functions.Ordinal);
                     RData_Section.Write(temp, 0, temp.Length);
 
-                    temp = Encoding.UTF8.GetBytes(functions.Item2);
+                    temp = Encoding.UTF8.GetBytes(functions.FunctionName);
 
                     RData_Section.Write(temp, 0, temp.Length);
                     RData_Section.WriteByte(0);
@@ -462,9 +469,9 @@ namespace Compiler
             offset = 0;
             for (int i = 0; i < code_info.StringTable.Count; i++)
             {
-                temp = Encoding.UTF8.GetBytes(code_info.StringTable[i].Item1);
+                temp = Encoding.UTF8.GetBytes(code_info.StringTable[i].Text);
 
-                foreach (int replacement in code_info.StringTable[i].Item2)
+                foreach (int replacement in code_info.StringTable[i].Replacements)
                 {
                     offset_calculation = header.OptionalHeader.ImageBase + Data_RVA + offset;
 
@@ -517,7 +524,6 @@ namespace Compiler
             header.OptionalHeader.BaseOfCode = Code_RVA;
             header.OptionalHeader.BaseOfData = RData_RVA;
 
-
             header.OptionalHeader.SizeOfHeaders = AlignTo((uint)RData_Section.Length, header.OptionalHeader.FileAlignment) + AlignTo((uint)Data_Section.Length, header.OptionalHeader.FileAlignment);
             header.OptionalHeader.SizeOfInitializedData = header.OptionalHeader.SizeOfHeaders;
 
@@ -530,6 +536,14 @@ namespace Compiler
 
             header.FileHeader.TimeDateStamp = (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
 
+            #endregion
+
+            #region Verbose
+            if(verbose)
+            {
+
+            }
+            //print full header and what not
             #endregion
 
             #region Write Executable
