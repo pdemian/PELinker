@@ -11,7 +11,7 @@ Technically this project serves no purpose just yet, other than maybe showcasing
 
 
 ## Installation
-Not applicable. Part of a work in progress Compiler.
+clone, and run the solution to build the executable
 
 ## Usage
     linker.exe -o test_n.exe tests/test_n.json
