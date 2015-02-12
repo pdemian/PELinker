@@ -45,9 +45,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CodeInformation.cs" />
-    <Compile Include="Linker.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="src\CodeInformation.cs" />
+    <Compile Include="src\Linker.cs" />
+    <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
