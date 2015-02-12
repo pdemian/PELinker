@@ -1,5 +1,5 @@
 {
-  "Code": "agDoAQAAAMz/JQAAAAA=",
+  "Code": "agX/FQAAAAA=",
   "EntryPoint": 0,
   "FileAlignment": 0,
   "SectionAlignment": 0,
@@ -12,16 +12,11 @@
           "Ordinal": 155,
           "FunctionName": "ExitProcess",
           "Replacements": [
-            10
+            4
           ]
         }
       ]
     }
   ],
-  "StringTable": [
-    {
-      "Text": "Hello World",
-      "Replacements": []
-    }
-  ]
+  "StringTable": []
 }

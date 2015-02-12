@@ -1,3 +1,13 @@
 Purpose: Testing out multiple strings/multiple libraries, and GUI
 Inputs: none
 Outputs: a WIN32 Messagebox
+
+Equivalent Code:
+	push 0
+	push "A simple PE test"
+	push "Hello World"
+	push 0
+	call MessageBoxA
+	
+	push 0
+	call ExitProcess

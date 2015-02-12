@@ -1,3 +1,7 @@
 Purpose: More advanced test of functionality
 Inputs: none
-Outputs: a non-zero return value
+Outputs: a return value of 5
+
+Equivalent Code:
+	push 5
+	call ExitProcess
