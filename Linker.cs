@@ -232,11 +232,11 @@ namespace Compiler
         }
         internal class Image_Import_Header
         {
-            public uint ImportLookUpTableAddress;
+            public uint ImportLookUpTableAddress = 0;
             public uint TimeDateStamp = 0;
             public uint ForwarderChain = 0;
-            public uint NameAddress;
-            public uint ImportAddressTableAddress;
+            public uint NameAddress = 0;
+            public uint ImportAddressTableAddress = 0;
 
             public byte[] ToBytes()
             {
@@ -319,7 +319,8 @@ namespace Compiler
         {
             //header information
             Image_Header header = new Image_Header();
-            List<Image_IAT_Header> IAT_Headers = new List<Image_IAT_Header>();
+            List<List<Image_IAT_Header>> IAT_Headers = new List<List<Image_IAT_Header>>();
+            List<Image_Import_Header> IIH_Headers = new List<Image_Import_Header>();
 
             //correct alignment if necessary
             if (code_info.FileAlignment > 0)
@@ -330,6 +331,7 @@ namespace Compiler
 
             //temporary variables
             byte[] temp = null;
+            byte[] temp2 = null;
             uint offset = 0;
             uint offset_calculation = 0;
 
@@ -343,125 +345,142 @@ namespace Compiler
             uint Data_RVA = 0;
 
             //Import header offsets
-            uint DLL_offset = 0;
-            uint function_offset = 0;
-            uint IAT_offset = 0;
-            uint IAT_size = 0;
+            uint total_IAT_offset = 0;
+            uint import_header_offset = 0;
 
             #region imports
-            //TODO: Major bug when including multiple libraries
-            //For some reason this code is not taking into account multiple IA tables 
-            //(Well, I know why: because I'm NOT taking into account multiple IA tables)
+            //seperate iat tables (4 byte item) * (num_funcs + 1) * num_dlls
+            //Directory Table (20 byte item) * number of dll's + 1
+            //seperate iat tables (4 byte item) * (num_funcs + 1) * num_dlls
+                //00 + function names of dll1
+                //name of dll
+            //IAT Tables = { location of NAME of function}
+            //Directory Table = { second IAT table, ....., location of NAME of dll, first IAT table }
 
+            //code = first IAT table
 
             /*
-             * Offset:         Contents:
-             * 0               [Import_Header_1]...[Import_Header_N],[Null_Header]
-             * +IAT_offset     [IAT_1]...[IAT_N],[Null_IAT]
-             * (+IAT_size)^    [IAT_1]...[IAT_N],[Null_IAT]
-             * +func_offset    [0000 + Function_Name_1 + 00]...[0000 + Function_Name_N + 00]
-             * +DLL_offset     [Dll_Name_1 + 00],...[Dll_Name_N + 00]
-             * 
-             * ^(+IAT_size) ==> Not to be included in final calculation. Only used to access the second IAT.
+             * [IAT1]....[IAT_n]
+             * [Import_Header1][Import_Header2]...[Import_Headers_n]
+             * [IAT1]....[IAT_n]
+             * for(0...n) [0000 + function_name_1 + 00]....[0000 + function_name_n + 00]
              */
-
-            IAT_offset = (uint)((1 + code_info.SymbolInfo.Count) * 20); //number of (# of DLLs + NULL) * 20 bytes each
-
-            IAT_size += 4; //4 byte NULL IAT
-            foreach (var DLL in code_info.SymbolInfo)
+            
+            //Add in the placeholder headers
+            foreach(var DLL in code_info.SymbolInfo)
             {
-                //4 byte IAT
-                IAT_size += 4 * (uint)DLL.Functions.Count;
+                IIH_Headers.Add(new Image_Import_Header());
+                List<Image_IAT_Header> current_IAT = new List<Image_IAT_Header>();
 
-                foreach (var function in DLL.Functions)
+                foreach(var function in DLL.Functions)
                 {
-                    //2 byte ordinal + name + null
-                    DLL_offset += (uint)(2 + function.FunctionName.Length + 1);
+                    current_IAT.Add(new Image_IAT_Header());
                 }
+                IAT_Headers.Add(current_IAT);
             }
 
-            function_offset = IAT_size * 2;
-
-
-            foreach (var DLL in code_info.SymbolInfo)
+            //handle the first IAT list
+            for(int i = 0; i < IIH_Headers.Count; i++)
             {
-                temp = new Image_Import_Header
-                {
-                    NameAddress = RData_RVA + IAT_offset + function_offset + DLL_offset,
-                    ImportAddressTableAddress = RData_RVA + IAT_offset,
-                    ImportLookUpTableAddress = RData_RVA + IAT_offset + IAT_size
-                }.ToBytes();
+                IIH_Headers[i].ImportAddressTableAddress = RData_RVA + total_IAT_offset;
 
-                RData_Section.Write(temp, 0, temp.Length);
-
-                foreach (var function in DLL.Functions)
+                for (int j = 0; j < code_info.SymbolInfo[i].Functions.Count; j++)
                 {
-                    IAT_Headers.Add(new Image_IAT_Header
+                    foreach (var replacement in code_info.SymbolInfo[i].Functions[j].Replacements)
                     {
-                        Address = RData_RVA + IAT_offset + function_offset
-                    });
-                    //adjust code to work with new functions
-                    foreach (var replacement in function.Replacements)
-                    {
-                        offset_calculation = header.OptionalHeader.ImageBase + RData_RVA + IAT_offset + function_offset;
+                        offset_calculation = header.OptionalHeader.ImageBase + RData_RVA + total_IAT_offset;
 
                         code_info.Code[replacement + 0] = (byte)(offset_calculation >> 0);
                         code_info.Code[replacement + 1] = (byte)(offset_calculation >> 8);
                         code_info.Code[replacement + 2] = (byte)(offset_calculation >> 16);
                         code_info.Code[replacement + 3] = (byte)(offset_calculation >> 24);
                     }
-                    function_offset += (uint)(2 + function.FunctionName.Length + 1);
                 }
-                DLL_offset += (uint)(DLL.LibraryName.Length + 1);
+
+
+                total_IAT_offset += ((uint)IAT_Headers[i].Count + 1) * 4;
             }
 
-            temp = new Image_Import_Header().ToBytes();
+            header.OptionalHeader.DataDirectory[12].VirtualAddress = RData_RVA;
+            header.OptionalHeader.DataDirectory[12].Size = total_IAT_offset;
+
+            import_header_offset += RData_RVA + total_IAT_offset + ((uint)IIH_Headers.Count + 1) * 0x14;
+
+            header.OptionalHeader.DataDirectory[1].VirtualAddress = RData_RVA + total_IAT_offset;
+            header.OptionalHeader.DataDirectory[1].Size = (((uint)IIH_Headers.Count) + 1) * 0x14;
+
+            //handle the second IAT list
+            for (int i = 0; i < IIH_Headers.Count; i++ )
+            {
+                IIH_Headers[i].ImportLookUpTableAddress = import_header_offset;
+
+                import_header_offset += ((uint)IAT_Headers[i].Count + 1) * 4;
+            }
+
+
+            MemoryStream RData_stringTable = new MemoryStream();
+            //handle function names and what not
+            for (int i = 0; i < IAT_Headers.Count; i++)
+            {
+                for(int j = 0; j < IAT_Headers[i].Count; j++)
+                {
+                    var func = code_info.SymbolInfo[i].Functions[j];
+
+                    IAT_Headers[i][j].Address = import_header_offset;
+
+                    //write ordinal + function name + null
+                    temp = BitConverter.GetBytes((short)func.Ordinal);
+                    RData_stringTable.Write(temp,0,temp.Length);
+                    temp = Encoding.UTF8.GetBytes(func.FunctionName);
+                    RData_stringTable.Write(temp, 0, temp.Length);
+                    RData_stringTable.WriteByte(0);
+
+                    import_header_offset += 2 + (uint)temp.Length + 1;
+                }
+
+                IIH_Headers[i].NameAddress = import_header_offset;
+
+                temp = Encoding.UTF8.GetBytes(code_info.SymbolInfo[i].LibraryName);
+
+                RData_stringTable.Write(temp, 0, temp.Length);
+                RData_stringTable.WriteByte(0);
+
+                import_header_offset += (uint)temp.Length + 1;
+            }
+
+            foreach (var IAT in IAT_Headers)
+                IAT.Add(new Image_IAT_Header());
+            IIH_Headers.Add(new Image_Import_Header());
+
+            //this is awful and it works
+            //I've spaced it out so it's "easier" to read
+            temp = IAT_Headers
+                              .Select(x => x
+                                            .Select(y => y.ToBytes())
+                                            .Aggregate((a,b) => a
+                                                                 .Concat(b)
+                                                                 .ToArray()))
+                              .Aggregate((a,b) => a
+                                                   .Concat(b)
+                                                   .ToArray());
+            
+            temp2 = IIH_Headers
+                               .Select(x => x.ToBytes())
+                               .Aggregate((a, b) => a.Concat(b).ToArray());
+
+            RData_Section.Write(temp, 0, temp.Length);
+            RData_Section.Write(temp2, 0, temp2.Length);
             RData_Section.Write(temp, 0, temp.Length);
 
-            IAT_Headers.Add(new Image_IAT_Header { Address = 0 });
-
-            for (int i = 0; i < 2; i++)
-            {
-                foreach (var IAT in IAT_Headers)
-                {
-                    temp = IAT.ToBytes();
-                    RData_Section.Write(temp, 0, temp.Length);
-                }
-            }
-
-            foreach (var DLL in code_info.SymbolInfo)
-            {
-                foreach (var functions in DLL.Functions)
-                {
-                    temp = BitConverter.GetBytes((short)functions.Ordinal);
-                    RData_Section.Write(temp, 0, temp.Length);
-
-                    temp = Encoding.UTF8.GetBytes(functions.FunctionName);
-
-                    RData_Section.Write(temp, 0, temp.Length);
-                    RData_Section.WriteByte(0);
-                }
-            }
-
-            foreach (var DLL in code_info.SymbolInfo)
-            {
-                temp = Encoding.UTF8.GetBytes(DLL.LibraryName);
-                RData_Section.Write(temp, 0, temp.Length);
-                RData_Section.WriteByte(0);
-            }
-
-
-            header.OptionalHeader.DataDirectory[12].VirtualAddress = RData_RVA + IAT_offset;
-            header.OptionalHeader.DataDirectory[12].Size = IAT_size;
-
-            header.OptionalHeader.DataDirectory[1].VirtualAddress = RData_RVA;
-            header.OptionalHeader.DataDirectory[1].Size = IAT_offset;
-
+            //CopyTo doesn't seem to work 100% of the time. Maybe a bug with .NET
+            //RData_stringTable.CopyTo(RData_Section);
+            temp = RData_stringTable.GetBuffer();
+            RData_Section.Write(temp, 0, (int)RData_stringTable.Length);
 
             //Correct Data RVA
             Data_RVA = AlignTo((uint)(RData_RVA + RData_Section.Length), header.OptionalHeader.SectionAlignment);
+                
             #endregion
-
             #region Data Table
             Data_RVA = AlignTo(RData_RVA + offset, header.OptionalHeader.SectionAlignment);
 
@@ -505,7 +524,7 @@ namespace Compiler
             header.Text_Section.PointerToRawData = header_length;
 
             //.rdata section
-            header.RData_Section.VirtualSize = (uint)RData_Section.Length;
+            header.RData_Section.VirtualSize = (uint)RData_Section.Length + 1;
             header.RData_Section.SizeOfRawData = AlignTo((uint)RData_Section.Length, header.OptionalHeader.FileAlignment);
 
             header.RData_Section.VirtualAddress = RData_RVA;
@@ -536,14 +555,6 @@ namespace Compiler
 
             header.FileHeader.TimeDateStamp = (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
 
-            #endregion
-
-            #region Verbose
-            if(verbose)
-            {
-
-            }
-            //print full header and what not
             #endregion
 
             #region Write Executable

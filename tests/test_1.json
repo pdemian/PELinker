@@ -6,7 +6,7 @@
   "Subsystem": 3,
   "SymbolInfo": [
     {
-      "LibraryName": "Kernel32.dll",
+      "LibraryName": "kernel32.dll",
       "Functions": [
         {
           "Ordinal": 155,

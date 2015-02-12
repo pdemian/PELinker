@@ -37,7 +37,7 @@ namespace Compiler
                 //parse arguments
                 arguments = ParseArguments(args);
 
-                if(arguments.FileIn == null)
+                if(string.IsNullOrWhiteSpace(arguments.FileIn))
                 {
                     throw new Exception("No input files");
                 }
@@ -61,7 +61,7 @@ namespace Compiler
                 {
                     Linker.WriteEXE(fs, codeInfo, arguments.Verbose);
                 }
-
+                
             }
             catch(Exception ex)
             {
@@ -82,12 +82,12 @@ namespace Compiler
                 {
                     case "-sectionalign":
                     case "-s":
-                        if(args.Length + 1 < i)
+                        if(args.Length + 1 >= i)
                             arguments.SectionAlignment = uint.Parse(args[++i]);
                         break;
                     case "-filealign":
                     case "-f":
-                        if (args.Length + 1 < i)
+                        if (args.Length + 1 >= i)
                             arguments.FileAlignment = uint.Parse(args[++i]);
                         break;
                     case "-verbose":
@@ -96,12 +96,12 @@ namespace Compiler
                         break;
                     case "-output":
                     case "-o":
-                        if (args.Length + 1 < i)
+                        if (args.Length + 1 >= i)
                             arguments.FileOut = args[++i];
                         break;
                     default:
-                        if (args.Length + 1 < i)
-                            arguments.FileIn = args[++i];
+                        if (args.Length + 1 >= i)
+                            arguments.FileIn = args[i];
                         break;
                 }
             }

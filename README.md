@@ -14,4 +14,6 @@ Technically this project serves no purpose just yet, other than maybe showcasing
 Not applicable. Part of a work in progress Compiler.
 
 ## Usage
-    linker.exe -o test.exe unit_test_x.ci
+    linker.exe -o test_n.exe tests/test_n.json
+	
+View test_n.txt to see what the test is supposed to do.
