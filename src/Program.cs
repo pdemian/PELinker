@@ -7,7 +7,7 @@ using System.IO;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
-namespace Compiler
+namespace Linker
 {
     class LinkMain
     {
@@ -82,12 +82,12 @@ namespace Compiler
                 {
                     case "-sectionalign":
                     case "-s":
-                        if(args.Length + 1 >= i)
+                        if(i + 1 >= args.Length)
                             arguments.SectionAlignment = uint.Parse(args[++i]);
                         break;
                     case "-filealign":
                     case "-f":
-                        if (args.Length + 1 >= i)
+                        if(i + 1 >= args.Length)
                             arguments.FileAlignment = uint.Parse(args[++i]);
                         break;
                     case "-verbose":
@@ -96,11 +96,11 @@ namespace Compiler
                         break;
                     case "-output":
                     case "-o":
-                        if (args.Length + 1 >= i)
+                        if(i + 1 >= args.Length)
                             arguments.FileOut = args[++i];
                         break;
                     default:
-                        if (args.Length + 1 >= i)
+                        if(i + 1 >= args.Length)
                             arguments.FileIn = args[i];
                         break;
                 }
