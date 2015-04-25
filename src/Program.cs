@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
 namespace Linker
 {
-    class LinkMain
+    public class LinkMain
     {
-        class ProgramArgs
+        internal class ProgramArgs
         {
             public bool Verbose;
             public uint FileAlignment;
@@ -29,7 +24,7 @@ namespace Linker
             }
         }
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             ProgramArgs arguments = new ProgramArgs();
             try
@@ -37,11 +32,11 @@ namespace Linker
                 //parse arguments
                 arguments = ParseArguments(args);
 
-                if(string.IsNullOrWhiteSpace(arguments.FileIn))
+                if (string.IsNullOrWhiteSpace(arguments.FileIn))
                 {
                     throw new Exception("No input files");
                 }
-                if(!File.Exists(arguments.FileIn))
+                if (!File.Exists(arguments.FileIn))
                 {
                     throw new Exception("Input file not found");
                 }
@@ -49,7 +44,7 @@ namespace Linker
                 //parse file
                 var codeInfo = ReadCodeInfoFile(arguments.FileIn);
 
-                if(arguments.FileOut == null)
+                if (arguments.FileOut == null)
                 {
                     arguments.FileOut = Path.GetFileNameWithoutExtension(arguments.FileIn) + ".exe";
                 }
@@ -61,17 +56,17 @@ namespace Linker
                 {
                     Linker.WriteEXE(fs, codeInfo, arguments.Verbose);
                 }
-                
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine("Fatal Error: " + ex.Message);
-                if(arguments.Verbose)
+                if (arguments.Verbose)
                 {
                     Console.WriteLine(ex);
                 }
             }
         }
+
         private static ProgramArgs ParseArguments(string[] args)
         {
             ProgramArgs arguments = new ProgramArgs();
@@ -82,13 +77,17 @@ namespace Linker
                 {
                     case "-sectionalign":
                     case "-s":
-                        if(i + 1 >= args.Length)
+                        if (i + 1 >= args.Length)
+                        {
                             arguments.SectionAlignment = uint.Parse(args[++i]);
+                        }
                         break;
                     case "-filealign":
                     case "-f":
-                        if(i + 1 >= args.Length)
+                        if (i + 1 >= args.Length)
+                        {
                             arguments.FileAlignment = uint.Parse(args[++i]);
+                        }
                         break;
                     case "-verbose":
                     case "-v":
@@ -96,25 +95,26 @@ namespace Linker
                         break;
                     case "-output":
                     case "-o":
-                        if(i + 1 >= args.Length)
+                        if (i + 1 >= args.Length)
+                        {
                             arguments.FileOut = args[++i];
+                        }
                         break;
                     default:
-                        if(i + 1 >= args.Length)
+                        if (i + 1 >= args.Length)
+                        {
                             arguments.FileIn = args[i];
+                        }
                         break;
                 }
             }
 
             return arguments;
         }
-        
+
         private static CodeInformation ReadCodeInfoFile(string file)
         {
             return JsonConvert.DeserializeObject<CodeInformation>(File.ReadAllText(file));
         }
     }
-
-
-
 }
