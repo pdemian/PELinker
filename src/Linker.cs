@@ -449,6 +449,7 @@ namespace Linker
                 IIH_Headers.Add(new Image_Import_Header());
 
                 //this is awful and it works
+                //convert all headers into their byte equivalent, then concatenate them all together
                 temp = IAT_Headers
                     .Select(x => x
                         .Select(y => y.ToBytes())
@@ -485,11 +486,7 @@ namespace Linker
             offset = 0;
             for (int i = 0; i < code_info.StringTable.Count; i++)
             {
-                //TODO major thing here
-                temp = Encoding.UTF8.GetBytes(
-                    Regex.Unescape(
-                        code_info.StringTable[i].Text)
-                    );
+                temp = Encoding.UTF8.GetBytes(code_info.StringTable[i].Text);
 
                 foreach (int replacement in code_info.StringTable[i].Replacements)
                 {
