@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Linker
 {
@@ -94,10 +93,10 @@ namespace Linker
 
 
             //temporary variables
-            byte[] temp = null;
-            byte[] temp2 = null;
-            uint offset = 0;
-            uint offset_calculation = 0;
+            byte[] temp;
+            byte[] temp2;
+            uint offset;
+            uint offset_calculation;
 
             //Data Sections
             MemoryStream RData_Section = new MemoryStream();
@@ -139,9 +138,9 @@ namespace Linker
                 {
                     IIH_Headers[i].ImportAddressTableAddress = RData_RVA + total_IAT_offset;
 
-                    for (int j = 0; j < code_info.SymbolInfo[i].Functions.Count; j++)
+                    foreach (CodeInformation.FunctionInformation function in code_info.SymbolInfo[i].Functions)
                     {
-                        foreach (var replacement in code_info.SymbolInfo[i].Functions[j].Replacements)
+                        foreach (var replacement in function.Replacements)
                         {
                             offset_calculation = header.OptionalHeader.ImageBase + RData_RVA + total_IAT_offset;
 
@@ -244,11 +243,11 @@ namespace Linker
 
             //string table replacements
             offset = 0;
-            for (int i = 0; i < code_info.StringTable.Count; i++)
+            foreach (CodeInformation.StringTableInformation stringInfo in code_info.StringTable)
             {
-                temp = Encoding.UTF8.GetBytes(code_info.StringTable[i].Text);
+                temp = Encoding.UTF8.GetBytes(stringInfo.Text);
 
-                foreach (int replacement in code_info.StringTable[i].Replacements)
+                foreach (int replacement in stringInfo.Replacements)
                 {
                     offset_calculation = header.OptionalHeader.ImageBase + Data_RVA + offset;
 
