@@ -9,247 +9,6 @@ namespace Linker
 {
     internal class Linker
     {
-        internal class Image_Header
-        {
-            public uint Signature = 0x004550;
-            public Image_File_Header FileHeader;
-            public Image_Optional_Header OptionalHeader;
-
-            //Hard coded at the moment, but should be a list of sections
-            public Image_Section_Header Text_Section;
-            public Image_Section_Header RData_Section;
-            public Image_Section_Header Data_Section;
-
-            public Image_Header()
-            {
-                FileHeader = new Image_File_Header();
-                OptionalHeader = new Image_Optional_Header();
-
-
-                Text_Section = new Image_Section_Header
-                {
-                    name = Encoding.ASCII.GetBytes(".text"),
-                    VirtualSize = OptionalHeader.SectionAlignment,
-                    SizeOfRawData = OptionalHeader.FileAlignment,
-                    Characteristics = 0x60000020,
-                    PointerToRawData = 1*OptionalHeader.FileAlignment,
-                    VirtualAddress = 1*OptionalHeader.SectionAlignment
-                };
-
-                RData_Section = new Image_Section_Header
-                {
-                    name = Encoding.ASCII.GetBytes(".rdata"),
-                    VirtualSize = OptionalHeader.SectionAlignment,
-                    SizeOfRawData = OptionalHeader.FileAlignment,
-                    Characteristics = 0x40000040,
-                    PointerToRawData = 2*OptionalHeader.FileAlignment,
-                    VirtualAddress = 2*OptionalHeader.SectionAlignment
-                };
-
-                Data_Section = new Image_Section_Header
-                {
-                    name = Encoding.ASCII.GetBytes(".data"),
-                    VirtualSize = OptionalHeader.SectionAlignment,
-                    SizeOfRawData = OptionalHeader.FileAlignment,
-                    Characteristics = 0xC0000040,
-                    PointerToRawData = 3*OptionalHeader.FileAlignment,
-                    VirtualAddress = 3*OptionalHeader.SectionAlignment
-                };
-            }
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(Signature)
-                    .Concat(FileHeader.ToBytes())
-                    .Concat(OptionalHeader.ToBytes())
-                    .Concat(Text_Section.ToBytes())
-                    .Concat(RData_Section.ToBytes())
-                    .Concat(Data_Section.ToBytes())
-                    .ToArray();
-            }
-        }
-
-        internal class Image_File_Header
-        {
-            public ushort Machine = 0x014C;
-            public ushort NumberOfSections = 0x03;
-            public uint TimeDateStamp;
-            public uint PointerToSymbolTable = 0x00;
-            public uint NumberOfSymbols = 0x00;
-            public ushort SizeOfOptionalHeader = 0x00E0;
-            public ushort Characteristics = 0x030F;
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(Machine)
-                    .Concat(BitConverter.GetBytes(NumberOfSections))
-                    .Concat(BitConverter.GetBytes(TimeDateStamp))
-                    .Concat(BitConverter.GetBytes(PointerToSymbolTable))
-                    .Concat(BitConverter.GetBytes(NumberOfSymbols))
-                    .Concat(BitConverter.GetBytes(SizeOfOptionalHeader))
-                    .Concat(BitConverter.GetBytes(Characteristics))
-                    .ToArray();
-            }
-        }
-
-        internal class Image_Optional_Header
-        {
-            public ushort Magic = 0x010B;
-            public byte MajorLinkerVersion = 0x01;
-            public byte MinorLinkerVersion = 0x00;
-            public uint SizeOfCode;
-            public uint SizeOfInitializedData;
-            public uint SizeOfUninitializedData = 0x00;
-            public uint AddressOfEntryPoint = 0x1000;
-            public uint BaseOfCode = 0x1000;
-            public uint BaseOfData = 0x2000;
-            public uint ImageBase = 0x00400000;
-            public uint SectionAlignment = 0x00001000;
-            public uint FileAlignment = 0x00000200;
-
-            public ushort MajorOperatingSystemVersion = 0x0004;
-            public ushort MinorOperatingSystemVersion = 0x0000;
-            public ushort MajorImageVersion = 0x00;
-            public ushort MinorImageVersion = 0x00;
-            public ushort MajorSubsystemVersion = 0x0004;
-            public ushort MinorSubsystemVersion = 0x0000;
-            public uint Win32VersionValue = 0x00;
-            public uint SizeOfImage;
-            public uint SizeOfHeaders = 0x00000200;
-            public uint CheckSum = 0x00;
-
-            public ushort Subsystem = 0x0003;
-            public ushort DllCharacteristics = 0x00;
-            public uint SizeOfStackReserve = 0x00100000;
-            public uint SizeOfStackCommit = 0x00001000;
-            public uint SizeOfHeapReserve = 0x00100000;
-            public uint SizeOfHeapCommit = 0x00001000;
-            public uint LoaderFlags = 0x00000000;
-            public uint NumberOfRvaAndSizes = 0x00000010;
-
-            public Image_Data_Directory[] DataDirectory;
-
-            public Image_Optional_Header()
-            {
-                DataDirectory = new Image_Data_Directory[NumberOfRvaAndSizes];
-                for (int i = 0; i < NumberOfRvaAndSizes; i++)
-                {
-                    DataDirectory[i] = new Image_Data_Directory();
-                }
-            }
-
-            public byte[] ToBytes()
-            {
-                DataDirectory.Select(x => x.ToBytes()).Aggregate((i, j) => i.Concat(j).ToArray());
-
-
-                return BitConverter.GetBytes(Magic)
-                    .Concat(new[] {MajorLinkerVersion, MinorLinkerVersion})
-                    .Concat(BitConverter.GetBytes(SizeOfCode))
-                    .Concat(BitConverter.GetBytes(SizeOfInitializedData))
-                    .Concat(BitConverter.GetBytes(SizeOfUninitializedData))
-                    .Concat(BitConverter.GetBytes(AddressOfEntryPoint))
-                    .Concat(BitConverter.GetBytes(BaseOfCode))
-                    .Concat(BitConverter.GetBytes(BaseOfData))
-                    .Concat(BitConverter.GetBytes(ImageBase))
-                    .Concat(BitConverter.GetBytes(SectionAlignment))
-                    .Concat(BitConverter.GetBytes(FileAlignment))
-                    .Concat(BitConverter.GetBytes(MajorOperatingSystemVersion))
-                    .Concat(BitConverter.GetBytes(MinorOperatingSystemVersion))
-                    .Concat(BitConverter.GetBytes(MajorImageVersion))
-                    .Concat(BitConverter.GetBytes(MinorImageVersion))
-                    .Concat(BitConverter.GetBytes(MajorSubsystemVersion))
-                    .Concat(BitConverter.GetBytes(MinorSubsystemVersion))
-                    .Concat(BitConverter.GetBytes(Win32VersionValue))
-                    .Concat(BitConverter.GetBytes(SizeOfImage))
-                    .Concat(BitConverter.GetBytes(SizeOfHeaders))
-                    .Concat(BitConverter.GetBytes(CheckSum))
-                    .Concat(BitConverter.GetBytes(Subsystem))
-                    .Concat(BitConverter.GetBytes(DllCharacteristics))
-                    .Concat(BitConverter.GetBytes(SizeOfStackReserve))
-                    .Concat(BitConverter.GetBytes(SizeOfStackCommit))
-                    .Concat(BitConverter.GetBytes(SizeOfHeapReserve))
-                    .Concat(BitConverter.GetBytes(SizeOfHeapCommit))
-                    .Concat(BitConverter.GetBytes(LoaderFlags))
-                    .Concat(BitConverter.GetBytes(NumberOfRvaAndSizes))
-                    .Concat(DataDirectory
-                        .Select(x => x.ToBytes())
-                        .Aggregate((i, j) => i.Concat(j)
-                            .ToArray()))
-                    .ToArray();
-            }
-        }
-
-        internal class Image_Data_Directory
-        {
-            public uint VirtualAddress;
-            public uint Size;
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(VirtualAddress)
-                    .Concat(BitConverter.GetBytes(Size))
-                    .ToArray();
-            }
-        }
-
-        internal class Image_Section_Header
-        {
-            public byte[] name;
-            public uint VirtualSize;
-            public uint VirtualAddress;
-            public uint SizeOfRawData;
-            public uint PointerToRawData;
-            public uint Characteristics;
-
-            public byte[] ToBytes()
-            {
-                if (name.Length > 8)
-                {
-                    name = name.Take(8).ToArray();
-                }
-
-                return name
-                    .Concat(CreatePadding(8 - name.Length))
-                    .Concat(BitConverter.GetBytes(VirtualSize))
-                    .Concat(BitConverter.GetBytes(VirtualAddress))
-                    .Concat(BitConverter.GetBytes(SizeOfRawData))
-                    .Concat(BitConverter.GetBytes(PointerToRawData))
-                    .Concat(CreatePadding(12))
-                    .Concat(BitConverter.GetBytes(Characteristics))
-                    .ToArray();
-            }
-        }
-
-        internal class Image_IAT_Header
-        {
-            public uint Address;
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(Address);
-            }
-        }
-
-        internal class Image_Import_Header
-        {
-            public uint ImportLookUpTableAddress;
-            public uint TimeDateStamp = 0;
-            public uint ForwarderChain = 0;
-            public uint NameAddress;
-            public uint ImportAddressTableAddress;
-
-            public byte[] ToBytes()
-            {
-                return BitConverter.GetBytes(ImportLookUpTableAddress)
-                    .Concat(BitConverter.GetBytes(TimeDateStamp))
-                    .Concat(BitConverter.GetBytes(ForwarderChain))
-                    .Concat(BitConverter.GetBytes(NameAddress))
-                    .Concat(BitConverter.GetBytes(ImportAddressTableAddress))
-                    .ToArray();
-            }
-        }
-
         public static void WriteEXE(FileStream fs, CodeInformation code_info, bool verbose)
         {
             WriteDOSHeader(fs);
@@ -314,6 +73,7 @@ namespace Linker
             //write code
             fs.Write(DOS_Code, 0, DOS_Code.Length);
         }
+
 
         private static void WritePE(FileStream fs, CodeInformation code_info, bool verbose)
         {
@@ -446,6 +206,7 @@ namespace Linker
                 {
                     IAT.Add(new Image_IAT_Header());
                 }
+                //add in the null header to signify the end of the list
                 IIH_Headers.Add(new Image_Import_Header());
 
                 //this is awful and it works
@@ -473,14 +234,13 @@ namespace Linker
                 temp = RData_stringTable.GetBuffer();
                 RData_Section.Write(temp, 0, (int) RData_stringTable.Length);
             }
-            //Correct Data RVA
-            Data_RVA = AlignTo((uint) (RData_RVA + RData_Section.Length), header.OptionalHeader.SectionAlignment);
 
             #endregion
 
             #region Data Table
 
-            Data_RVA = AlignTo(RData_RVA + offset, header.OptionalHeader.SectionAlignment);
+            //Correct Data RVA
+            Data_RVA = AlignTo((uint)(RData_RVA + RData_Section.Length), header.OptionalHeader.SectionAlignment);
 
             //string table replacements
             offset = 0;
@@ -601,11 +361,6 @@ namespace Linker
             fs.Write(temp, 0, temp.Length);
 
             #endregion
-        }
-
-        private static byte[] CreatePadding(int size)
-        {
-            return new byte[size];
         }
 
         private static byte[] CreatePadding(uint value, uint alignment)

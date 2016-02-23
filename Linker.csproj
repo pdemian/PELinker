@@ -46,6 +46,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\CodeInformation.cs" />
+    <Compile Include="src\Image_Data_Directory.cs" />
+    <Compile Include="src\Image_File_Header.cs" />
+    <Compile Include="src\Image_Header.cs" />
+    <Compile Include="src\Image_IAT_Header.cs" />
+    <Compile Include="src\Image_Import_Header.cs" />
+    <Compile Include="src\Image_Optional_Header.cs" />
+    <Compile Include="src\Image_Section_Header.cs" />
     <Compile Include="src\Linker.cs" />
     <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
